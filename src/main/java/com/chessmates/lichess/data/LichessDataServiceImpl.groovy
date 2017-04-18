@@ -2,6 +2,7 @@ package com.chessmates.lichess.data
 
 import com.chessmates.model.Game
 import com.chessmates.model.Player
+import com.chessmates.repository.PlayerRepository
 import com.chessmates.utility.GetPageFunction
 import org.apache.commons.lang3.tuple.ImmutablePair
 import org.springframework.beans.factory.annotation.Autowired
@@ -25,10 +26,12 @@ class LichessDataServiceImpl implements LichessDataService {
     private Integer pageSizeGames
 
     private LichessApi lichessApi
+    private PlayerRepository playerRepository
 
     @Autowired
-    LichessDataService(LichessApi lichessApi) {
+    LichessDataService(LichessApi lichessApi, PlayerRepository playerRepository) {
         this.lichessApi = lichessApi
+        this.playerRepository = playerRepository
     }
 
     /**
@@ -39,14 +42,17 @@ class LichessDataServiceImpl implements LichessDataService {
      */
     @Override
     List<Player> getPlayers(String untilPlayerId = null) {
-        def fetchPlayerPage = { String teamId, int pageNum -> lichessApi.getPlayers(teamId, pageNum, pageSizePlayers) }
-        def stopAtPlayerId = { Player player -> player.id == untilPlayerId }
+        final fetchPlayerPage = { String teamId, int pageNum -> lichessApi.getPlayers(teamId, pageNum, pageSizePlayers) }
+        final stopAtPlayerId = { Player player -> player.id == untilPlayerId }
 
-        def resultSet = new LichessResultSet<Player>(
+        final resultSet = new LichessResultSet<Player>(
                 (GetPageFunction)fetchPlayerPage.curry(TEAM_NAME),
                 stopAtPlayerId
         )
-        resultSet.get()
+
+        final players = resultSet.get()
+        players.each { playerRepository.save it }
+        return players
     }
 
     /**
@@ -73,29 +79,29 @@ class LichessDataServiceImpl implements LichessDataService {
 
         def games = playerCombinations.stream()
         // Get all of the games for a pair of players.
-                .map { playerCombination ->
+            .map { playerCombination ->
 
-            def player = playerCombination.left
-            def opponent = playerCombination.right
+                def player = playerCombination.left
+                def opponent = playerCombination.right
 
-            def resultSet = new LichessResultSet<Game>(
-                    /* So functional! Bind the fetchGamePage * stop condition with the player arguments. The getAllPages func isn't concerned
-                    with any arguments. */
-                    /* PS - groovy closures! Why don't you play nice with Java 8 functions?! */
-                    (GetPageFunction)fetchGamePage.curry(player, opponent),
-                    gameIsLatest.curry(player, opponent),
-            )
+                def resultSet = new LichessResultSet<Game>(
+                        /* So functional! Bind the fetchGamePage * stop condition with the player arguments. The getAllPages func isn't concerned
+                        with any arguments. */
+                        /* PS - groovy closures! Why don't you play nice with Java 8 functions?! */
+                        (GetPageFunction)fetchGamePage.curry(player, opponent),
+                        gameIsLatest.curry(player, opponent),
+                )
 
-            def games = resultSet.get()
+                def games = resultSet.get()
 
-            if (games.size()) {
-                latestGameMap.put(playerCombination, games.first())
+                if (games.size()) {
+                    latestGameMap.put(playerCombination, games.first())
+                }
+
+                return games
             }
-
-            return games
-        }
-        .flatMap { gamePageResults -> gamePageResults.stream() }
-                .collect(Collectors.toList())
+            .flatMap { gamePageResults -> gamePageResults.stream() }
+            .collect(Collectors.toList())
 
         return games
     }
