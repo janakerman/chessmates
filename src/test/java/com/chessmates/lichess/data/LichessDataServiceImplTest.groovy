@@ -129,21 +129,24 @@ class LichessDataServiceImplTest extends Specification {
     // Player tests.
 
     def "ignores invalid players"() {
+        given:
+        httpUtility.get(Helper.TEAM_WITH_INVALID_USERS.url) >> Helper.loadFile(Helper.TEAM_WITH_INVALID_USERS.responseFile)
+
         when:
         final players = service.getPlayers(null)
 
         then:
-        httpUtility.get(Helper.TEAM_WITH_INVALID_USERS.url) >> Helper.loadFile(Helper.TEAM_WITH_INVALID_USERS.responseFile)
-
         players.size() == 1
     }
 
     def "returns empty list of players with empty data set"() {
+        given:
+        httpUtility.get(Helper.TEAM_WITH_EMPTY_USERS.url) >> Helper.loadFile(Helper.TEAM_WITH_EMPTY_USERS.responseFile)
+
         when:
         final players = service.getPlayers(null)
 
         then:
-        httpUtility.get(Helper.TEAM_WITH_EMPTY_USERS.url) >> Helper.loadFile(Helper.TEAM_WITH_EMPTY_USERS.responseFile)
         players.size() == 0
     }
 
@@ -151,13 +154,14 @@ class LichessDataServiceImplTest extends Specification {
         given:
         final latestPlayer = null
 
+        and:
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_1.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_1.responseFile)
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
+
         when:
         final players = service.getPlayers(latestPlayer)
 
         then:
-        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_1.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_1.responseFile)
-        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
-
         players.size() == 8
         players[0].id == 'jfaker'
         players[1].id == 'riciardos'
@@ -173,13 +177,14 @@ class LichessDataServiceImplTest extends Specification {
         given:
         final latestPlayer = 'tf235'
 
+        and:
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_1.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_1.responseFile)
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
+
         when:
         final players = service.getPlayers(latestPlayer)
 
         then:
-        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_1.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_1.responseFile)
-        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
-
         players.size() == 5
         players[0].id == 'jfaker'
         players[1].id == 'riciardos'
@@ -192,13 +197,14 @@ class LichessDataServiceImplTest extends Specification {
         given:
         final latestPlayer = 'tf235'
 
+        and:
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_1.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_1.responseFile)
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
+
         when:
         service.getPlayers(latestPlayer)
 
         then:
-        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_1.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_1.responseFile)
-        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
-
         1 * playerRepository.save(new Player('jfaker', null))
         1 * playerRepository.save(new Player('riciardos', null))
         1 * playerRepository.save(new Player('samei07', null))
@@ -216,11 +222,13 @@ class LichessDataServiceImplTest extends Specification {
                 new Player('owennw', 'owennw'),
         ]
 
+        and:
+        httpUtility.get(Helper.TF235_VS_OWENNW_INVALID.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_INVALID.responseFile)
+
         when:
         final games = service.getGames(players, latestGames)
 
         then:
-        httpUtility.get(Helper.TF235_VS_OWENNW_INVALID.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_INVALID.responseFile)
         games.size() == 1
     }
 
@@ -245,16 +253,18 @@ class LichessDataServiceImplTest extends Specification {
                 new Player('jedrus07', 'jedrus07')
         ]
 
-        when:
-        final games = service.getGames(players, latestGames)
-
-        then:
+        and:
         httpUtility.get(Helper.TF235_VS_OWENNW_1.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_1.responseFile)
         httpUtility.get(Helper.TF235_VS_OWENNW_2.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_2.responseFile)
         httpUtility.get(Helper.TF235_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_1.responseFile)
         httpUtility.get(Helper.TF235_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_2.responseFile)
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_1.responseFile)
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_2.responseFile)
+
+        when:
+        final games = service.getGames(players, latestGames)
+
+        then:
         games.size() == 56
     }
 
@@ -270,16 +280,18 @@ class LichessDataServiceImplTest extends Specification {
         latestGames.put(new ImmutablePair(players[0], players[2]), new Game('ThSBEyjg', null))
         latestGames.put(new ImmutablePair(players[1], players[2]), new Game('0Qk6CAqq', null))
 
-        when:
-        final games = service.getGames(players, latestGames)
-
-        then:
+        and:
         httpUtility.get(Helper.TF235_VS_OWENNW_1.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_1.responseFile)
         httpUtility.get(Helper.TF235_VS_OWENNW_2.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_2.responseFile)
         httpUtility.get(Helper.TF235_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_1.responseFile)
         httpUtility.get(Helper.TF235_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_2.responseFile)
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_1.responseFile)
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_2.responseFile)
+
+        when:
+        final games = service.getGames(players, latestGames)
+
+        then:
         games.size() == 18
     }
 
@@ -292,16 +304,18 @@ class LichessDataServiceImplTest extends Specification {
         ]
         final latestGames = null
 
-        when:
-        service.getGames(players, latestGames)
-
-        then:
+        and:
         httpUtility.get(Helper.TF235_VS_OWENNW_1.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_1.responseFile)
         httpUtility.get(Helper.TF235_VS_OWENNW_2.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_2.responseFile)
         httpUtility.get(Helper.TF235_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_1.responseFile)
         httpUtility.get(Helper.TF235_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_2.responseFile)
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_1.responseFile)
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_2.responseFile)
+
+        when:
+        service.getGames(players, latestGames)
+
+        then:
         56 * gameRepository.save(_ as Game)
     }
 
