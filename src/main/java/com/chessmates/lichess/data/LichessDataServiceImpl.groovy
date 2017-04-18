@@ -2,6 +2,7 @@ package com.chessmates.lichess.data
 
 import com.chessmates.model.Game
 import com.chessmates.model.Player
+import com.chessmates.repository.GameRepository
 import com.chessmates.repository.PlayerRepository
 import com.chessmates.utility.GetPageFunction
 import org.apache.commons.lang3.tuple.ImmutablePair
@@ -27,11 +28,13 @@ class LichessDataServiceImpl implements LichessDataService {
 
     private LichessApi lichessApi
     private PlayerRepository playerRepository
+    private GameRepository gameRepository
 
     @Autowired
-    LichessDataService(LichessApi lichessApi, PlayerRepository playerRepository) {
+    LichessDataService(LichessApi lichessApi, PlayerRepository playerRepository, GameRepository gameRepository) {
         this.lichessApi = lichessApi
         this.playerRepository = playerRepository
+        this.gameRepository = gameRepository
     }
 
     /**
@@ -102,6 +105,8 @@ class LichessDataServiceImpl implements LichessDataService {
             }
             .flatMap { gamePageResults -> gamePageResults.stream() }
             .collect(Collectors.toList())
+
+        games.each { Game game -> gameRepository.save game }
 
         return games
     }
