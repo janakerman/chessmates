@@ -21,6 +21,7 @@ class Player {
         this.username = username
     }
 
+    @Override
     boolean equals(o) {
         if (this.is(o)) return true
         if (getClass() != o.class) return false
@@ -32,7 +33,11 @@ class Player {
         return true
     }
 
+    @Override
     int hashCode() {
         return id.hashCode()
     }
+
+    @Override
+    String toString() { "<Player: ${id}>" }
 }
