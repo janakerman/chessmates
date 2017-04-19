@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
 import javax.net.ssl.HttpsURLConnection
+import javax.xml.ws.http.HTTPException
 import java.time.LocalDateTime
 import static java.time.temporal.ChronoUnit.*
 
@@ -30,7 +31,7 @@ class ThrottledHttpUtility implements HttpUtility {
      */
     @Override
     @Cacheable('requestCache')
-    String get(String targetUrl) {
+    String get(String targetUrl) throws HTTPException {
         def now = LocalDateTime.now()
 
         if (lastRequest) {
@@ -49,24 +50,25 @@ class ThrottledHttpUtility implements HttpUtility {
     /**
      * Makes a get request for given resource.
      */
-    private String getRequest(String targetUrl) {
+    private String getRequest(String targetUrl) throws HTTPException {
         def connection
         try {
-            return ((HttpsURLConnection)targetUrl.toURL().openConnection()).with { conn ->
+            return ((HttpsURLConnection) targetUrl.toURL().openConnection()).with { conn ->
                 requestMethod = 'GET'
                 doOutput = true
 
                 /* If we receive a 429 sleep the thread for 1 minute - this isn't a real solution just a quick semi-fix
                 trying to avoid getting an IP ban during development. */
                 if (responseCode == HttpStatus.TOO_MANY_REQUESTS.value()) {
-                    logger.warn "Received 429 in response to request: waiting ${COOLDOWN_TIME_MILLIS} (${targetUrl})"
-                    // TODO: I know I know...
-                    Thread.sleep(COOLDOWN_TIME_MILLIS)
+                    throw new HTTPException(HttpStatus.TOO_MANY_REQUESTS.value())
                 }
 
                 // We're making http requests so we're assuming that we'll be getting back a HttpInputStream.
-                return ((InputStream)conn.getContent()).withReader { r -> r.text }
+                return ((InputStream) conn.getContent()).withReader { r -> r.text }
             }
+        } catch (HTTPException e) {
+            logger.warn "Server returned HTTP response code: ${e.statusCode} for URL: ${targetUrl}"
+            throw e
         } finally {
             if(connection != null) {
                 connection.disconnect()
