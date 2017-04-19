@@ -1,7 +1,5 @@
 package com.chessmates.lichess.data
 
-import com.chessmates.lichess.data.LichessResultPage
-import com.chessmates.lichess.data.LichessResultSet
 import com.chessmates.utility.GetPageFunction
 import spock.lang.Specification
 

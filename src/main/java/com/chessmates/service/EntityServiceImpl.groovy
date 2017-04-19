@@ -25,13 +25,13 @@ class EntityServiceImpl implements EntityService {
      */
     @Override
     // TODO: Replace with fetch from DB.
-    List<Player> getPlayers() { lichessDataService.getPlayers(null) }
+    List<Player> getPlayers() { lichessDataService.getPlayers() }
 
     /**
      * Get all games between scott logic players.
      */
     @Override
     // TODO: Replace with fetch from DB.
-    List<Game> getGames() { lichessDataService.getGames(getPlayers(), null) }
+    List<Game> getGames() { lichessDataService.getGames(getPlayers()) }
 
 }
