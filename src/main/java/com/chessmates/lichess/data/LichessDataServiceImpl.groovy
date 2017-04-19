@@ -107,6 +107,7 @@ class LichessDataServiceImpl implements LichessDataService {
                 )
 
                 def games = resultSet.get()
+                games.each { Game game -> gameRepository.save game }
 
                 if (games.size()) {
                     metaDataRepository.saveLatestGame(player, opponent, games.first())
@@ -116,8 +117,6 @@ class LichessDataServiceImpl implements LichessDataService {
             }
             .flatMap { gamePageResults -> gamePageResults.stream() }
             .collect(Collectors.toList())
-
-        games.each { Game game -> gameRepository.save game }
 
         return games
     }
