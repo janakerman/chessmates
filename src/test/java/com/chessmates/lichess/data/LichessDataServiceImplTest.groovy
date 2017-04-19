@@ -1,10 +1,13 @@
 package com.chessmates.lichess.data
 
-import com.chessmates.lichess.data.LichessDataServiceImpl
 import com.chessmates.model.Game
 import com.chessmates.model.Player
+import com.chessmates.repository.GameRepository
+import com.chessmates.repository.MetaDataRepository
+import com.chessmates.repository.PlayerRepository
 import com.chessmates.utility.HttpUtility
 import com.google.common.base.Charsets
+import com.google.common.collect.ImmutableMap
 import com.google.common.io.Resources
 import org.apache.commons.lang3.tuple.ImmutablePair
 import org.spockframework.spring.ScanScopedBeans
@@ -26,11 +29,26 @@ class LichessDataServiceImplTest extends Specification {
     @TestConfiguration
     private static class MockConfig {
 
-        final detachedMockFactory = new DetachedMockFactory()
+        final detatchedMockFactory = new DetachedMockFactory()
 
         @Bean
         HttpUtility httpUtility() {
-            return detachedMockFactory.Mock(HttpUtility)
+            detatchedMockFactory.Mock(HttpUtility)
+        }
+
+        @Bean
+        PlayerRepository playerRepository() {
+            detatchedMockFactory.Mock(PlayerRepository)
+        }
+
+        @Bean
+        GameRepository gameRepository() {
+            detatchedMockFactory.Mock(GameRepository)
+        }
+
+        @Bean
+        MetaDataRepository metaDataRepository() {
+            detatchedMockFactory.Mock(MetaDataRepository)
         }
 
     }
@@ -103,39 +121,59 @@ class LichessDataServiceImplTest extends Specification {
     @Autowired
     HttpUtility httpUtility
 
+    @Autowired
+    PlayerRepository playerRepository
+
+    @Autowired
+    GameRepository gameRepository
+
+    @Autowired
+    MetaDataRepository metaDataRepository
+
     def setup() {
         // Set smaller page sizes as we provide data for these pages sizes.
         ReflectionTestUtils.setField(service, 'pageSizePlayers', Helper.PAGE_SIZE_USERS)
         ReflectionTestUtils.setField(service, 'pageSizeGames', Helper.PAGE_SIZE_GAMES)
     }
 
+    def noLatestGames() {
+        // The MetaDataRepository should return an empty store by default.
+        metaDataRepository.latestGames >> ImmutableMap.builder().build()
+    }
+
+    // Player tests.
+
     def "ignores invalid players"() {
+        given:
+        httpUtility.get(Helper.TEAM_WITH_INVALID_USERS.url) >> Helper.loadFile(Helper.TEAM_WITH_INVALID_USERS.responseFile)
+
         when:
         final players = service.getPlayers()
 
         then:
-        httpUtility.get(Helper.TEAM_WITH_INVALID_USERS.url) >> Helper.loadFile(Helper.TEAM_WITH_INVALID_USERS.responseFile)
-
         players.size() == 1
     }
 
     def "returns empty list of players with empty data set"() {
+        given:
+        httpUtility.get(Helper.TEAM_WITH_EMPTY_USERS.url) >> Helper.loadFile(Helper.TEAM_WITH_EMPTY_USERS.responseFile)
+
         when:
         final players = service.getPlayers()
 
         then:
-        httpUtility.get(Helper.TEAM_WITH_EMPTY_USERS.url) >> Helper.loadFile(Helper.TEAM_WITH_EMPTY_USERS.responseFile)
         players.size() == 0
     }
 
     def "returns full set of players when no latest player is provided"() {
+        given:
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_1.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_1.responseFile)
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
+
         when:
         final players = service.getPlayers()
 
         then:
-        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_1.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_1.responseFile)
-        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
-
         players.size() == 8
         players[0].id == 'jfaker'
         players[1].id == 'riciardos'
@@ -149,15 +187,16 @@ class LichessDataServiceImplTest extends Specification {
 
     def "stops fetching at provided player when latest player is provided"() {
         given:
-        final latestPlayer = 'tf235'
+        metaDataRepository.getLatestPlayer() >> new Player('tf235', null)
 
-        when:
-        final players = service.getPlayers(latestPlayer)
-
-        then:
+        and:
         httpUtility.get(Helper.SCOTT_LOGIC_TEAM_1.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_1.responseFile)
         httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
 
+        when:
+        final players = service.getPlayers()
+
+        then:
         players.size() == 5
         players[0].id == 'jfaker'
         players[1].id == 'riciardos'
@@ -166,25 +205,63 @@ class LichessDataServiceImplTest extends Specification {
         players[4].id == 'torrlane'
     }
 
+    def "saves players when new player is fetched"() {
+        given:
+        metaDataRepository.getLatestPlayer() >> new Player('tf235', null)
+
+        and:
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_1.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_1.responseFile)
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
+
+        when:
+        service.getPlayers()
+
+        then:
+        1 * playerRepository.save(new Player('jfaker', null))
+        1 * playerRepository.save(new Player('riciardos', null))
+        1 * playerRepository.save(new Player('samei07', null))
+        1 * playerRepository.save(new Player('sydeman', null))
+        1 * playerRepository.save(new Player('torrlane', null))
+    }
+
+    def "saves latest player when players are fetched"() {
+        given:
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_1.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_1.responseFile)
+        httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
+
+        when:
+        service.getPlayers()
+
+        then:
+        1 * metaDataRepository.saveLatestPlayer(new Player('jfaker', null))
+    }
+
+    // Games tests.
+
     def "ignores invalid games"() {
         given:
-        final latestGames = null
         final players = [
                 new Player('tf235', 'tf235'),
                 new Player('owennw', 'owennw'),
         ]
 
+        and:
+        noLatestGames()
+        httpUtility.get(Helper.TF235_VS_OWENNW_INVALID.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_INVALID.responseFile)
+
         when:
-        final games = service.getGames(players, latestGames)
+        final games = service.getGames(players)
 
         then:
-        httpUtility.get(Helper.TF235_VS_OWENNW_INVALID.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_INVALID.responseFile)
         games.size() == 1
     }
 
     def "returns empty games when no players are provided"() {
         given:
         final players = null
+
+        and:
+        noLatestGames()
 
         when:
         final games = service.getGames(players)
@@ -201,16 +278,19 @@ class LichessDataServiceImplTest extends Specification {
                 new Player('jedrus07', 'jedrus07')
         ]
 
-        when:
-        final games = service.getGames(players)
-
-        then:
+        and:
+        noLatestGames()
         httpUtility.get(Helper.TF235_VS_OWENNW_1.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_1.responseFile)
         httpUtility.get(Helper.TF235_VS_OWENNW_2.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_2.responseFile)
         httpUtility.get(Helper.TF235_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_1.responseFile)
         httpUtility.get(Helper.TF235_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_2.responseFile)
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_1.responseFile)
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_2.responseFile)
+
+        when:
+        final games = service.getGames(players)
+
+        then:
         games.size() == 56
     }
 
@@ -221,22 +301,77 @@ class LichessDataServiceImplTest extends Specification {
                 new Player('owennw', 'owennw'),
                 new Player('jedrus07', 'jedrus07')
         ]
-        final latestGames = new HashMap()
-        latestGames.put(new ImmutablePair(players[0], players[1]), new Game('tlicb8yX', null))
-        latestGames.put(new ImmutablePair(players[0], players[2]), new Game('ThSBEyjg', null))
-        latestGames.put(new ImmutablePair(players[1], players[2]), new Game('0Qk6CAqq', null))
 
-        when:
-        final games = service.getGames(players, latestGames)
+        and:
+        metaDataRepository.getLatestGames() >> ImmutableMap.builder().putAll([
+                (new ImmutablePair(players[0], players[1])): new Game('tlicb8yX', null),
+                (new ImmutablePair(players[0], players[2])): new Game('ThSBEyjg', null),
+                (new ImmutablePair(players[1], players[2])): new Game('0Qk6CAqq', null)
+        ]).build()
 
-        then:
+        and:
         httpUtility.get(Helper.TF235_VS_OWENNW_1.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_1.responseFile)
         httpUtility.get(Helper.TF235_VS_OWENNW_2.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_2.responseFile)
         httpUtility.get(Helper.TF235_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_1.responseFile)
         httpUtility.get(Helper.TF235_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_2.responseFile)
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_1.responseFile)
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_2.responseFile)
+
+        when:
+        final games = service.getGames(players)
+
+        then:
         games.size() == 18
+    }
+
+    def "saves game when new game is fetched"() {
+        given:
+        final players = [
+                new Player('tf235', 'tf235'),
+                new Player('owennw', 'owennw'),
+                new Player('jedrus07', 'jedrus07')
+        ]
+
+        and:
+        noLatestGames()
+        httpUtility.get(Helper.TF235_VS_OWENNW_1.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_1.responseFile)
+        httpUtility.get(Helper.TF235_VS_OWENNW_2.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_2.responseFile)
+        httpUtility.get(Helper.TF235_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_1.responseFile)
+        httpUtility.get(Helper.TF235_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_2.responseFile)
+        httpUtility.get(Helper.OWENNW_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_1.responseFile)
+        httpUtility.get(Helper.OWENNW_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_2.responseFile)
+
+        when:
+        service.getGames(players)
+
+        then:
+        56 * gameRepository.save(_ as Game)
+    }
+
+    def "saves latest game for each player when games are fetched"() {
+        given:
+        final players = [
+                new Player('tf235', 'tf235'),
+                new Player('owennw', 'owennw'),
+                new Player('jedrus07', 'jedrus07')
+        ]
+
+        and:
+        noLatestGames()
+        httpUtility.get(Helper.TF235_VS_OWENNW_1.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_1.responseFile)
+        httpUtility.get(Helper.TF235_VS_OWENNW_2.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_2.responseFile)
+        httpUtility.get(Helper.TF235_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_1.responseFile)
+        httpUtility.get(Helper.TF235_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.TF235_VS_JEDRUS07_2.responseFile)
+        httpUtility.get(Helper.OWENNW_VS_JEDRUS07_1.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_1.responseFile)
+        httpUtility.get(Helper.OWENNW_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_2.responseFile)
+
+        when:
+        service.getGames(players)
+
+        then:
+        1 * metaDataRepository.saveLatestGame(players[0], players[1], new Game('OBBHfGOC', null))
+        1 * metaDataRepository.saveLatestGame(players[0], players[2], new Game('uP0rXPYL', null))
+        1 * metaDataRepository.saveLatestGame(players[1], players[2], new Game('1J73NgR1', null))
     }
 
 }
