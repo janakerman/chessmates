@@ -36,7 +36,7 @@
    ### IntelliJ
    
    1. Set up the password to the SSL certificate.
-       1. Check the [wiki page](https://int.scottlogic.co.uk/wiki/Chessmates) for the SSL password.
+       1. Check the [wiki page](https://int.scottlogic.co.uk/wiki/Chessmates) (Internal Scott Logic wiki) for the SSL password.
        1. Set the `CHESSMATES_KEYSTORE_PW` environment variable to this value.(`Build, Execution & Deployment > Build Tools > Maven > Runner > Environment Variables`)
    
   
