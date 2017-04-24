@@ -4,11 +4,12 @@ package com.chessmates.lichess.data
  */
 interface LichessDataService {
 
-    /** Get all players. */
-    List getPlayers()
+    /** Fetch all players from Lichess and persist new items. */
+    List updatePlayers()
 
-    /** Get all games. */
-    List getGames(List players)
+    /** Fetch games for given players from the Lichess and persist
+     * new items. */
+    List updateGames(List players)
 
 
 }

@@ -24,12 +24,25 @@ class EntityServiceImpl implements EntityService {
      * Get all Lichess players.
      */
     @Override
-    List getPlayers() { playerRepository.findAll() }
+    List getPlayers() {
+        playerRepository.findAll()
+    }
+
+    @Override
+    getPlayer(String id) {
+        playerRepository.find(id)
+    }
 
     /**
      * Get all games between scott logic players.
      */
     @Override
-    List getGames() { gameRepository.findAll() }
+    List getGames() {
+        gameRepository.findAll()
+    }
 
+    @Override
+    getGame(String id) {
+        gameRepository.find(id)
+    }
 }
