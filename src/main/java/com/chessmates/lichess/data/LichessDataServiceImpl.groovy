@@ -1,5 +1,6 @@
 package com.chessmates.lichess.data
 
+import com.chessmates.model.Player
 import com.chessmates.repository.GameRepository
 import com.chessmates.repository.MetaDataRepository
 import com.chessmates.repository.PlayerRepository
@@ -59,6 +60,7 @@ class LichessDataServiceImpl implements LichessDataService {
 
         List players = resultSet.get()
                 .stream()
+                .map(Player.metaClass.&invokeConstructor) // Gross - definitely worse than Java 8
                 .filter(LichessEntityValidator.&isValid)
                 .collect(Collectors.toList())
 

@@ -1,4 +1,7 @@
 package com.chessmates.lichess.data
+
+import com.chessmates.model.Player
+
 /**
  * Service for fetching data from the Lichess API.
  */
