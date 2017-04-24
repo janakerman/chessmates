@@ -10,23 +10,25 @@ class LeagueTable {
 
     private static final Logger logger = org.slf4j.LoggerFactory.getLogger(LeagueTable)
 
+    /** Points gained for a win. */
     final winPoints
-    final loosePoints
+    /** Points gained for a loss. */
+    final lossPoints
 
     private final Map<String, LeagueRow> playerRows = new HashMap()
 
-    LeagueTable(Integer winPoints, Integer loosePoints) {
+    LeagueTable(Integer winPoints, Integer lossPoints) {
         this.winPoints = winPoints
-        this.loosePoints = loosePoints
+        this.lossPoints = lossPoints
     }
 
     /** Add games to the league table. **/
-    protected void add(List games) {
+    protected void add(Collection games) {
         games.each { game ->
             final maybeWinColor = GameColor.fromString(game.winner)
 
             if (!maybeWinColor.isPresent()) {
-                logger.error "Couldn't add game to league: no winner field"
+                logger.error "Couldn't add game: ${game.id} to league. Game has no winner field."
                 return
             }
 
@@ -64,7 +66,7 @@ class LeagueTable {
         Integer getWins() { wins }
         Integer getLoses() { loses }
         Integer getPlayed() { wins + loses }
-        Integer getPoints() { (wins * winPoints) + (loses * loosePoints)}
+        Integer getPoints() { (wins * winPoints) + (loses * lossPoints)}
     }
 
 }
