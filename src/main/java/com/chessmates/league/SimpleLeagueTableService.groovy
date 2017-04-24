@@ -10,8 +10,9 @@ import org.springframework.stereotype.Service
 @Service
 class SimpleLeagueTableService implements LeagueTableService {
 
-    private final Integer WIN_POINTS = 1
-    private final Integer LOOSE_POINTS = 0
+    private final Float WIN_POINTS = 1
+    private final Float DRAW_POINTS = 0.5
+    private final Float LOOSE_POINTS = 0
 
     private final GameRepository gameRepository
 
@@ -22,7 +23,7 @@ class SimpleLeagueTableService implements LeagueTableService {
 
     @Override
     LeagueTable getTable() {
-        final table = new LeagueTable(WIN_POINTS, LOOSE_POINTS)
+        final table = new LeagueTable(WIN_POINTS, DRAW_POINTS, LOOSE_POINTS)
 
         final allGames = gameRepository.findAll()
         table.add allGames

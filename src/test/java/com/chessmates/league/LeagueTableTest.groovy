@@ -2,6 +2,8 @@ package com.chessmates.league
 
 import spock.lang.Specification
 
+import java.util.stream.Collectors
+
 
 class LeagueTableTest extends Specification {
 
@@ -15,6 +17,24 @@ class LeagueTableTest extends Specification {
         league.getRows().size() == 0
     }
 
+
+    def "ignores games without result"() {
+        given: "game with no winner and no status indicating draw"
+        def games = [
+                [id: '1', players: [white: [ userId: 'A' ], black: [ userId: 'B' ]]],
+        ]
+
+        and:
+        league = new LeagueTable(2f, 1f, 0.5f)
+
+        when:
+        league.add games
+
+        then:
+        league.getRows().size() == 0
+
+    }
+
     def "a league with games should display the correct score"() {
         given:
         def games = [
@@ -26,7 +46,7 @@ class LeagueTableTest extends Specification {
         ]
 
         and:
-        league = new LeagueTable(2, 1)
+        league = new LeagueTable(2f, 1f, 0.5f)
 
         when:
         league.add(games)
@@ -35,25 +55,71 @@ class LeagueTableTest extends Specification {
         league.getRows().size() == 3
 
         and: "playerRows are ordered with highest first"
-        league.getRows().get(0).userId == 'A'
-        league.getRows().get(1).userId == 'C'
-        league.getRows().get(2).userId == 'B'
+        assertPlayerOrder(league.getRows(), ['A', 'C', 'B'])
 
         and: "row contents are correct"
-        league.getRows().get(0).wins == 3
-        league.getRows().get(0).loses == 0
-        league.getRows().get(0).played == 3
-        league.getRows().get(0).points == 6
-
-        league.getRows().get(1).wins == 2
-        league.getRows().get(1).loses == 1
-        league.getRows().get(1).played == 3
-        league.getRows().get(1).points == 5
-
-        league.getRows().get(2).wins == 0
-        league.getRows().get(2).loses == 4
-        league.getRows().get(2).played == 4
-        league.getRows().get(2).points == 4
+        assertPlayerRow(league.getRows(), 'A', 3, 0, 0, 3, 6)
+        assertPlayerRow(league.getRows(), 'C', 2, 0, 1, 3, 4.5)
+        assertPlayerRow(league.getRows(), 'B', 0, 0, 4, 4, 2)
     }
 
+    def "handles draws"() {
+        given:
+        def games = [
+                [id: '1', status: 'outoftime', players: [white: [ userId: 'B' ], black: [ userId: 'A' ]]],
+                [id: '1', status: 'outoftime', players: [white: [ userId: 'B' ], black: [ userId: 'A' ]]],
+                [id: '1', status: 'draw', players: [white: [ userId: 'C' ], black: [ userId: 'B' ]]],
+                [id: '1', status: 'draw', players: [white: [ userId: 'C' ], black: [ userId: 'A' ]]],
+        ]
+
+        and: "winning game with status"
+        games.add([id: '1', status: 'outoftime', winner: 'black', players: [white: [ userId: 'C' ], black: [ userId: 'A' ]]])
+
+        and:
+        league = new LeagueTable(2f, 1f, 0.5f)
+
+        when:
+        league.add(games)
+
+        then:
+        league.getRows().size() == 3
+
+        and:
+        assertPlayerOrder(league.getRows(), ['A', 'B', 'C'])
+
+        and: "row contents are correct"
+        assertPlayerRow(league.getRows(), 'A', 1, 3, 0, 4, 5)
+        assertPlayerRow(league.getRows(), 'B', 0, 3, 0, 3, 3)
+        assertPlayerRow(league.getRows(), 'C', 0, 2, 1, 3, 2.5)
+    }
+
+    def "equal rows are sorted alphabetically"() {
+        given:
+        def games = [
+                [id: '1', status: 'outoftime', players: [white: [ userId: 'C' ], black: [ userId: 'A' ]]],
+                [id: '1', status: 'outoftime', players: [white: [ userId: 'B' ], black: [ userId: 'A' ]]],
+        ]
+
+        and:
+        league = new LeagueTable(2f, 1f, 0.5f)
+
+        when:
+        league.add games
+
+        then:
+        assertPlayerOrder(league.getRows(), ['A', 'B', 'C'])
+    }
+
+    private static void assertPlayerRow(rows, player, wins, draws, loses, played, points) {
+        def row = rows.find { it.userId == player }
+        assert row.wins == wins
+        assert row.draws == draws
+        assert row.loses == loses
+        assert row.played == played
+        assert row.points == points
+    }
+
+    private static void assertPlayerOrder(rows, players) {
+        assert rows.stream().map({ it.userId }).collect(Collectors.toList()) == players
+    }
 }
