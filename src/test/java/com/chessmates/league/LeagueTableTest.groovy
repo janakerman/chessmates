@@ -58,9 +58,9 @@ class LeagueTableTest extends Specification {
         assertPlayerOrder(league.getRows(), ['A', 'C', 'B'])
 
         and: "row contents are correct"
-        assertPlayerRow(league.getRows(), 'A', 3, 0, 0, 3, 6)
-        assertPlayerRow(league.getRows(), 'C', 2, 0, 1, 3, 4.5)
-        assertPlayerRow(league.getRows(), 'B', 0, 0, 4, 4, 2)
+        assertPlayerRow(league.getRows(), 1, 'A', 3, 0, 0, 3, 6)
+        assertPlayerRow(league.getRows(), 2, 'C', 2, 0, 1, 3, 4.5)
+        assertPlayerRow(league.getRows(), 3, 'B', 0, 0, 4, 4, 2)
     }
 
     def "handles draws"() {
@@ -88,9 +88,9 @@ class LeagueTableTest extends Specification {
         assertPlayerOrder(league.getRows(), ['A', 'B', 'C'])
 
         and: "row contents are correct"
-        assertPlayerRow(league.getRows(), 'A', 1, 3, 0, 4, 5)
-        assertPlayerRow(league.getRows(), 'B', 0, 3, 0, 3, 3)
-        assertPlayerRow(league.getRows(), 'C', 0, 2, 1, 3, 2.5)
+        assertPlayerRow(league.getRows(), 1, 'A', 1, 3, 0, 4, 5)
+        assertPlayerRow(league.getRows(), 2, 'B', 0, 3, 0, 3, 3)
+        assertPlayerRow(league.getRows(), 3, 'C', 0, 2, 1, 3, 2.5)
     }
 
     def "equal rows are sorted alphabetically"() {
@@ -110,8 +110,43 @@ class LeagueTableTest extends Specification {
         assertPlayerOrder(league.getRows(), ['A', 'B', 'C'])
     }
 
-    private static void assertPlayerRow(rows, player, wins, draws, loses, played, points) {
-        def row = rows.find { it.userId == player }
+    def "shared position for rows that have same points"() {
+        given:
+        def games = [
+                [id: '1', status: 'outoftime', winner: 'white', players: [white: [ userId: 'A' ], black: [ userId: 'B' ]]],
+                [id: '1', status: 'outoftime', winner: 'white', players: [white: [ userId: 'A' ], black: [ userId: 'C' ]]],
+                [id: '1', status: 'outoftime', winner: 'white', players: [white: [ userId: 'A' ], black: [ userId: 'D' ]]],
+                [id: '1', status: 'outoftime', winner: 'white', players: [white: [ userId: 'A' ], black: [ userId: 'E' ]]],
+                [id: '1', status: 'outoftime', winner: 'white', players: [white: [ userId: 'B' ], black: [ userId: 'D' ]]],
+                [id: '1', status: 'outoftime', winner: 'white', players: [white: [ userId: 'C' ], black: [ userId: 'E' ]]],
+        ]
+
+        and:
+        league = new LeagueTable(2f, 1f, 0.5f)
+
+        when:
+        league.add games
+
+        then:
+        assertPosition(league.getRows(), 'A', 1)
+        assertPosition(league.getRows(), 'B', 2)
+        assertPosition(league.getRows(), 'C', 2)
+        assertPosition(league.getRows(), 'D', 3)
+        assertPosition(league.getRows(), 'E', 3)
+    }
+
+    private static tableRow(rows, player) {
+        rows.find { it.userId == player }
+    }
+
+    private static void assertPosition(rows, player, position) {
+        def row = tableRow(rows, player)
+        assert row.position == position
+    }
+
+    private static void assertPlayerRow(rows, position, player, wins, draws, loses, played, points) {
+        def row = tableRow(rows, player)
+        assert row.position == position
         assert row.wins == wins
         assert row.draws == draws
         assert row.loses == loses

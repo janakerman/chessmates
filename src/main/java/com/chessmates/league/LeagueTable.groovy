@@ -19,7 +19,7 @@ class LeagueTable {
     /** Points gained for a loss. */
     final lossPoints
 
-    private final Map<String, LeagueRow> playerRows = new HashMap()
+    private final List<LeagueRow> playerRows = new LinkedList<>()
 
     LeagueTable(Float winPoints = 0, Float drawPoints = 0, Float lossPoints = 0) {
         this.winPoints = winPoints
@@ -54,17 +54,38 @@ class LeagueTable {
             getLeagueRow(playerRows, winner).wins++
             getLeagueRow(playerRows, looser).loses++
         }
+
+        updatePositions(playerRows)
     }
 
-    /** Get an ordered set of league table playerRows representing the games in the league. */
-    List<LeagueRow> getRows() {
-        new ArrayList(playerRows.values())
-            .sort { a, b -> b.points.compareTo(a.points) }
+    List<LeagueRow> getRows() { playerRows }
+
+    private LeagueRow getLeagueRow(List<LeagueRow> rows, player) {
+        LeagueRow row = rows.find { it.userId == player}
+        if (!row) {
+            row = new LeagueRow(player)
+            rows.add row
+        }
+        return row
     }
 
-    private LeagueRow getLeagueRow(rows, player) {
-        rows.putIfAbsent(player, new LeagueRow(player))
-        rows.get(player)
+    private static updatePositions(rows) {
+        def nextPosition = 1
+        rows.sort { a, b ->
+                final pointResult = b.points.compareTo(a.points)
+                if (pointResult != 0) return pointResult
+                else a.userId.compareTo(b.userId)
+            }
+            .eachWithIndex { row, i ->
+                final previousRow = i > 0 ? rows.get(i-1) : null
+
+                if (previousRow && row.points == previousRow.points) {
+                    row.position = previousRow.position
+                    return
+                }
+
+                row.position = nextPosition++
+            }
     }
 
     /** Represents a single players results in the league. */
@@ -72,6 +93,7 @@ class LeagueTable {
 
         final String userId
 
+        private Integer position = null
         private Integer wins = 0
         private Integer draws = 0
         private Integer loses = 0
@@ -80,6 +102,7 @@ class LeagueTable {
             this.userId = playerId
         }
 
+        Integer getPosition() { position }
         Integer getWins() { wins }
         Integer getDraws() { draws }
         Integer getLoses() { loses }
@@ -87,7 +110,7 @@ class LeagueTable {
         Float getPoints() { (wins * winPoints) + (draws * drawPoints) + (loses * lossPoints)}
 
         @Override
-        String toString() { "${this.class.name}{winPoints=${winPoints}, wins=${wins}, draws=${draws}, loses=${loses}}" }
+        String toString() { "${this.class.name}{userId=${userId}, position=${position}, winPoints=${winPoints}, wins=${wins}, draws=${draws}, loses=${loses}}" }
 
     }
 
