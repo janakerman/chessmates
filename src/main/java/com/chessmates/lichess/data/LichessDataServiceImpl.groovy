@@ -44,7 +44,7 @@ class LichessDataServiceImpl implements LichessDataService {
      * @return A list of all players.
      */
     @Override
-    List getPlayers() {
+    List updatePlayers() {
         final untilPlayer = metaDataRepository.getLatestPlayer()
         final fetchPlayerPage = { String teamId, int pageNum -> lichessApi.getPlayersPage(teamId, pageNum, pageSizePlayers) }
         final stopAtPlayerId = { player ->
@@ -80,7 +80,7 @@ class LichessDataServiceImpl implements LichessDataService {
      * @return A list of all new games.
      */
     @Override
-    List getGames(List players) {
+    List updateGames(List players) {
 
         final latestGameMap = metaDataRepository.getLatestGames()
 

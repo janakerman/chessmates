@@ -148,7 +148,7 @@ class LichessDataServiceImplTest extends Specification {
         httpUtility.get(Helper.TEAM_WITH_INVALID_USERS.url) >> Helper.loadFile(Helper.TEAM_WITH_INVALID_USERS.responseFile)
 
         when:
-        final players = service.getPlayers()
+        final players = service.updatePlayers()
 
         then:
         players.size() == 1
@@ -159,7 +159,7 @@ class LichessDataServiceImplTest extends Specification {
         httpUtility.get(Helper.TEAM_WITH_EMPTY_USERS.url) >> Helper.loadFile(Helper.TEAM_WITH_EMPTY_USERS.responseFile)
 
         when:
-        final players = service.getPlayers()
+        final players = service.updatePlayers()
 
         then:
         players.size() == 0
@@ -171,7 +171,7 @@ class LichessDataServiceImplTest extends Specification {
         httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
 
         when:
-        final players = service.getPlayers()
+        final players = service.updatePlayers()
 
         then:
         players.size() == 8
@@ -194,7 +194,7 @@ class LichessDataServiceImplTest extends Specification {
         httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
 
         when:
-        final players = service.getPlayers()
+        final players = service.updatePlayers()
 
         then:
         players.size() == 5
@@ -214,7 +214,7 @@ class LichessDataServiceImplTest extends Specification {
         httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
 
         when:
-        service.getPlayers()
+        service.updatePlayers()
 
         then:
         1 * playerRepository.save({ it.id == 'jfaker' })
@@ -230,7 +230,7 @@ class LichessDataServiceImplTest extends Specification {
         httpUtility.get(Helper.SCOTT_LOGIC_TEAM_2.url) >> Helper.loadFile(Helper.SCOTT_LOGIC_TEAM_2.responseFile)
 
         when:
-        service.getPlayers()
+        service.updatePlayers()
 
         then:
         1 * metaDataRepository.saveLatestPlayer({ it.id == 'jfaker' })
@@ -250,7 +250,7 @@ class LichessDataServiceImplTest extends Specification {
         httpUtility.get(Helper.TF235_VS_OWENNW_INVALID.url) >> Helper.loadFile(Helper.TF235_VS_OWENNW_INVALID.responseFile)
 
         when:
-        final games = service.getGames(players)
+        final games = service.updateGames(players)
 
         then:
         games.size() == 1
@@ -264,7 +264,7 @@ class LichessDataServiceImplTest extends Specification {
         noLatestGames()
 
         when:
-        final games = service.getGames(players)
+        final games = service.updateGames(players)
 
         then:
         games.size() == 0
@@ -288,7 +288,7 @@ class LichessDataServiceImplTest extends Specification {
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_2.responseFile)
 
         when:
-        final games = service.getGames(players)
+        final games = service.updateGames(players)
 
         then:
         games.size() == 56
@@ -318,7 +318,7 @@ class LichessDataServiceImplTest extends Specification {
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_2.responseFile)
 
         when:
-        final games = service.getGames(players)
+        final games = service.updateGames(players)
 
         then:
         games.size() == 18
@@ -342,7 +342,7 @@ class LichessDataServiceImplTest extends Specification {
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_2.responseFile)
 
         when:
-        service.getGames(players)
+        service.updateGames(players)
 
         then:
         56 * gameRepository.save(_)
@@ -366,7 +366,7 @@ class LichessDataServiceImplTest extends Specification {
         httpUtility.get(Helper.OWENNW_VS_JEDRUS07_2.url) >> Helper.loadFile(Helper.OWENNW_VS_JEDRUS07_2.responseFile)
 
         when:
-        service.getGames(players)
+        service.updateGames(players)
 
         then:
         1 * metaDataRepository.saveLatestGame({ it.id == 'tf235' }, { it.id == 'owennw' }, { it.id == 'OBBHfGOC' })
