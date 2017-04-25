@@ -60,7 +60,7 @@ class LichessDataServiceImpl implements LichessDataService {
 
         List players = resultSet.get()
                 .stream()
-                .map(Player.metaClass.&invokeConstructor) // Gross - definitely worse than Java 8
+                .map({p -> Player.createPlayer(p)})
                 .filter(LichessEntityValidator.&isValid)
                 .collect(Collectors.toList())
 

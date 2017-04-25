@@ -18,6 +18,10 @@ class Player implements LichessModel {
         this.slurpedJson = slurpedJson
     }
 
+    static Player createPlayer(Map slurpedJson){
+        new Player(slurpedJson)
+    }
+
     String getId() { this.slurpedJson?.id }
     String getUsername() { this.slurpedJson?.username }
 
